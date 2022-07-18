@@ -1,21 +1,21 @@
 = Hoe Loves Git
 
-* http://github.com/jbarnette/hoe-git
-* http://docs.seattlerb.org/hoe-git
+* home :: http://github.com/halostatue/hoe-git
+* docs :: http://docs.seattlerb.org/hoe-git
 
 == Description
 
-A set of Hoe plugins for tighter Git integration. Provides tasks to
-automate release tagging and pushing and changelog generation. I
-expect it'll learn a few more tricks in the future.
+A set of Hoe plugins for tighter Git integration. Provides tasks to automate release tagging and pushing and changelog
+generation. I expect it'll learn a few more tricks in the future.
+
+This is an evolution of +hoe-git+ by John Barnette, which has been archived at <http://github.com/jbarnette/hoe-git>.
 
 == Examples
 
     # in your Rakefile
-    Hoe.plugin :git
+    Hoe.plugin :git2
 
-If this plugin doesn't see a .git directory at the root of your
-project, it'll silently deactivate itself.
+If this plugin cannot see that it is in a `.git` directory, it'll silently deactivate itself.
 
 === Autogenerating the Changelog
 
@@ -59,11 +59,11 @@ accordingly.
 == Dependencies
 
 Hoe and Git, obviously. I wouldn't be surprised if things don't quite
-work for git < 1.6.3.
+work for git < 2.37.
 
 == Installation
 
-    $ gem install hoe-git
+    $ gem install hoe-git2
 
 == TODO
 
@@ -73,6 +73,7 @@ work for git < 1.6.3.
 == License
 
 Copyright 2009 John Barnette (jbarnette@rubyforge.org)
+Copyright 2022 Austin Ziegler (halostatue@gmail.com)
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

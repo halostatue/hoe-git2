@@ -1,5 +1,7 @@
-*.swp
-/doc
-/pkg
-RakeAnalyzer.dot
-RakeAnalyzer.png
+Gemfile.lock
+coverage
+doc
+html
+pkg
+publish
+work

@@ -1,3 +1,19 @@
+=== 1.7.0 / 2022-07-18
+
+* 2 minor enhancements:
+
+  * Incorporated the porcelain change for jbarnette/hoe-git#14, resolving
+    jbarnette/hoe-git#13. Thanks to @ghost for the original contribution.
+
+  * Improved in-git and git-svn detection to use git porcelain instead of
+    strict directory detection.
+
+* This is sort of a re-birthday! Since jbarnette/hoe-git has been archived,
+  I've forked the repository and released this plug-in as +hoe-git2+. I've
+  also chosen to reformat this to my preferred style. I have released this
+  using the same versioning as +hoe-git+ because this is very much a
+  continuation of the original code.
+
 === 1.6.0 / 2014-02-05
 
 * 1 minor enhancement:

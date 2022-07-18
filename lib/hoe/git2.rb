@@ -1,5 +1,6 @@
-class Hoe #:nodoc:
+require "shellwords"
 
+class Hoe # :nodoc:
   # This module is a Hoe plugin. You can set its attributes in your
   # Rakefile Hoe spec, like this:
   #
@@ -17,10 +18,9 @@ class Hoe #:nodoc:
   # git:manifest::  Update the manifest with Git's file list.
   # git:tag::       Create and push a tag.
 
-  module Git
-
+  module Git2
     # Duh.
-    VERSION = "1.6.0"
+    VERSION = "1.7.0"
 
     # What do you want at the front of your release tags?
     # [default: <tt>"v"</tt>]
@@ -32,52 +32,55 @@ class Hoe #:nodoc:
 
     attr_accessor :git_remotes
 
-    def initialize_git #:nodoc:
+    def initialize_git2 # :nodoc:
       self.git_release_tag_prefix = "v"
-      self.git_remotes            = %w(origin)
+      self.git_remotes = %w[origin]
     end
 
-    def define_git_tasks #:nodoc:
-      return unless File.exist? ".git"
+    def define_git2_tasks # :nodoc:
+      return unless __run_git("rev-parse", "--is-inside-work-tree") == "true"
 
       desc "Print the current changelog."
       task "git:changelog" do
-        tag   = ENV["FROM"] || git_tags.last
-        range = [tag, "HEAD"].compact.join ".."
-        cmd   = %Q(git log #{range} "--format=tformat:%B|||%aN|||%aE|||")
-        now   = Time.new.strftime "%Y-%m-%d"
+        tag = ENV["FROM"] || git_tags.last
+        range = [tag, "HEAD"].compact.join("..")
+        now = Time.new.strftime("%Y-%m-%d")
 
-        changes = `#{cmd}`.split(/\|\|\|/).each_slice(3).map do |msg, author, email|
-          msg.split(/\n/).reject { |s| s.empty? }
-        end
+        changes =
+          __run_git("log", range, "--format=tformat:%B|||%aN|||%aE|||")
+            .split("|||")
+            .each_slice(3)
+            .map do |msg, _author, _email|
+            msg.split("\n").reject(&:empty?)
+          end
 
         changes = changes.flatten
 
         next if changes.empty?
 
-        $changes = Hash.new { |h,k| h[k] = [] }
+        $changes = Hash.new { |h, k| h[k] = [] } # standard:disable Style/GlobalVars
 
         codes = {
           "!" => :major,
           "+" => :minor,
           "*" => :minor,
           "-" => :bug,
-          "?" => :unknown,
+          "?" => :unknown
         }
 
         codes_re = Regexp.escape codes.keys.join
 
         changes.each do |change|
-          if change =~ /^\s*([#{codes_re}])\s*(.*)/ then
+          if change =~ /^\s*([#{codes_re}])\s*(.*)/
             code, line = codes[$1], $2
           else
             code, line = codes["?"], change.chomp
           end
 
-          $changes[code] << line
+          $changes[code] << line # standard:disable Style/GlobalVars
         end
 
-        puts "=== #{ENV['VERSION'] || 'NEXT'} / #{now}"
+        puts "=== #{ENV["VERSION"] || "NEXT"} / #{now}"
         puts
         changelog_section :major
         changelog_section :minor
@@ -86,11 +89,10 @@ class Hoe #:nodoc:
         puts
       end
 
-
       desc "Update the manifest with Git's file list. Use Hoe's excludes."
       task "git:manifest" do
         with_config do |config, _|
-          files = `git ls-files`.split "\n"
+          files = __run_git("ls-files").split($/)
           files.reject! { |f| f =~ config["exclude"] }
 
           File.open "Manifest.txt", "w" do |f|
@@ -99,9 +101,7 @@ class Hoe #:nodoc:
         end
       end
 
-      desc "Create and push a TAG " +
-           "(default #{git_release_tag_prefix}#{version})."
-
+      desc "Create and push a TAG (default #{git_release_tag_prefix}#{version})."
       task "git:tag" do
         tag = ENV["TAG"]
         ver = ENV["VERSION"] || version
@@ -117,34 +117,47 @@ class Hoe #:nodoc:
       end
 
       task :release_sanity do
-        unless `git status` =~ /^nothing to commit/
+        unless __run_git("status", "--porcelain").empty?
           abort "Won't release: Dirty index or untracked files present!"
         end
       end
 
-      task :release_to => "git:tag"
+      task release_to: "git:tag"
+    end
+
+    def __git(command, *params)
+      "git #{command.shellescape} #{params.compact.shelljoin}"
+    end
+
+    def __run_git(command, *params)
+      `#{__git(command, *params)}`.strip.chomp
     end
 
     def git_svn?
-      File.exist? ".git/svn"
+      File.exist?(File.join(__run_git("rev-parse", "--show-toplevel"), ".git/svn"))
     end
 
     def git_tag_and_push tag
       msg = "Tagging #{tag}."
 
       if git_svn?
-        sh %Q(git svn tag #{tag} -m "#{msg}")
+        sh __git("svn", "tag", tag, "-m", msg)
       else
-        flags = ' -s' unless `git config --get user.signingkey`.empty?
+        flags =
+          if __run_git("config", "--get", "user.signingkey").empty?
+            nil
+          else
+            "-s"
+          end
 
-        sh %Q(git tag#{flags} -f #{tag} -m "#{msg}")
-        git_remotes.each { |remote| sh "git push -f #{remote} tag #{tag}" }
+        sh __git("tag", flags, "-f", tag, "-m", msg)
+        git_remotes.each { |remote| sh __git("push", "-f", remote, "tag", tag) }
       end
     end
 
     def git_tags
       if git_svn?
-        source = `git config svn-remote.svn.tags`.strip
+        source = __run_git("config", "svn-remote.svn.tags")
 
         unless source =~ %r{refs/remotes/(.*)/\*$}
           abort "Can't discover git-svn tag scheme from #{source}"
@@ -152,31 +165,32 @@ class Hoe #:nodoc:
 
         prefix = $1
 
-        `git branch -r`.split("\n").
-          collect { |t| t.strip }.
-          select  { |t| t =~ %r{^#{prefix}/#{git_release_tag_prefix}} }
+        __run_git("branch", "-r")
+          .split($/)
+          .collect { |t| t.strip }
+          .select { |t| t =~ %r{^#{prefix}/#{git_release_tag_prefix}} }
       else
-        flags  = "--date-order --simplify-by-decoration --pretty=format:%H"
-        hashes = `git log #{flags}`.split(/\n/).reverse
-        names  = `git name-rev --tags #{hashes.join " "}`.split(/\n/)
-        names  = names.map { |s| s[/tags\/(v.+)/, 1] }.compact
-        names  = names.map { |s| s.sub(/\^0$/, '') }
+        flags = %w[--date-order --simplify-by-decoration --pretty=format:%H]
+        hashes = __run_git("log", *flags).split($/).reverse
+        names = __run_git("name-rev", "--tags", *hashes).split($/)
+        names = names.map { |s| s[/tags\/(v.+)/, 1] }.compact
+        names = names.map { |s| s.sub(/\^0$/, "") }
         names.select { |t| t =~ %r{^#{git_release_tag_prefix}} }
       end
     end
 
-    def changelog_section code
+    def changelog_section(code)
       name = {
-        :major   => "major enhancement",
-        :minor   => "minor enhancement",
-        :bug     => "bug fix",
-        :unknown => "unknown",
+        major: "major enhancement",
+        minor: "minor enhancement",
+        bug: "bug fix",
+        unknown: "unknown"
       }[code]
 
-      changes = $changes[code]
+      changes = $changes[code] # standard:disable Style/GlobalVars
       count = changes.size
       name += "s" if count > 1
-      name.sub!(/fixs/, 'fixes')
+      name.sub!(/fixs/, "fixes")
 
       return if count < 1
 
