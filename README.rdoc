@@ -1,14 +1,16 @@
 = Hoe Loves Git
 
-* home :: http://github.com/halostatue/hoe-git
-* docs :: http://docs.seattlerb.org/hoe-git
+* home :: https://github.com/halostatue/hoe-git
 
 == Description
+
+[Update 20250801]
+  I no longer use this plugin directly, but instead use {hoe-halostatue}[https://github.com/halostatue/hoe-halostatue], which adopted the features I require.
 
 A set of Hoe plugins for tighter Git integration. Provides tasks to automate release tagging and pushing and changelog
 generation. I expect it'll learn a few more tricks in the future.
 
-This is an evolution of +hoe-git+ by John Barnette, which has been archived at <http://github.com/jbarnette/hoe-git>.
+This is an evolution of +hoe-git+ by John Barnette, which has been archived at <https://github.com/jbarnette/hoe-git>.
 
 == Examples
 
